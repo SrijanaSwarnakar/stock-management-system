@@ -1,0 +1,556 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ─── ENUMS ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  MANAGER
+  SALES_STAFF
+  INVENTORY_STAFF
+}
+
+enum PurchaseStatus {
+  DRAFT
+  POSTED
+  CANCELLED
+}
+
+enum SaleStatus {
+  DRAFT
+  POSTED
+  PARTIAL
+  PAID
+  CANCELLED
+}
+
+enum ReturnStatus {
+  DRAFT
+  COMPLETED
+  CANCELLED
+}
+
+enum MovementType {
+  OPENING
+  PURCHASE
+  SALE
+  PURCHASE_RETURN
+  SALE_RETURN
+  ADJUSTMENT_IN
+  ADJUSTMENT_OUT
+}
+
+enum AdjustmentType {
+  INCREASE
+  DECREASE
+  DAMAGE
+  EXPIRY
+  THEFT
+  CORRECTION
+}
+
+enum PaymentMethod {
+  CASH
+  BANK_TRANSFER
+  CHEQUE
+  ESEWA
+  KHALTI
+  OTHER
+}
+
+enum DocType {
+  SALE_INVOICE
+  PURCHASE_INVOICE
+  SALE_RETURN
+  PURCHASE_RETURN
+  PAYMENT_RECEIVED
+  PAYMENT_MADE
+  STOCK_ADJUSTMENT
+}
+
+// ─── AUTHENTICATION & USERS ───────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(SALES_STAFF)
+  phone        String?
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  auditLogs                AuditLog[]
+  createdPurchases         Purchase[]
+  createdSales             Sale[]
+  purchaseReturns          PurchaseReturn[]
+  saleReturns              SaleReturn[]
+  customerPayments         CustomerPayment[]
+  supplierPayments         SupplierPayment[]
+  expenses                 Expense[]
+  stockMovements           StockMovement[]
+  stockAdjustmentsCreated  StockAdjustment[] @relation("AdjustmentCreatedBy")
+  stockAdjustmentsApproved StockAdjustment[] @relation("AdjustmentApprovedBy")
+
+  @@index([email])
+  @@index([role])
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  userId    String?
+  user      User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action    String
+  entity    String
+  entityId  String?
+  oldValue  Json?
+  newValue  Json?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  @@index([entity, entityId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// ─── PRODUCT CATALOG & UNITS ──────────────────────────────────────────────────
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  products Product[]
+}
+
+model Unit {
+  id         String   @id @default(cuid())
+  name       String   @unique
+  symbol     String   @unique
+  isBaseUnit Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  productsAsBase  Product[]        @relation("BaseUnit")
+  conversionsFrom UnitConversion[] @relation("FromUnit")
+  conversionsTo   UnitConversion[] @relation("ToUnit")
+  purchaseLines   PurchaseLine[]
+  saleLines       SaleLine[]
+}
+
+model UnitConversion {
+  id         String   @id @default(cuid())
+  fromUnitId String
+  fromUnit   Unit     @relation("FromUnit", fields: [fromUnitId], references: [id], onDelete: Restrict)
+  toUnitId   String
+  toUnit     Unit     @relation("ToUnit", fields: [toUnitId], references: [id], onDelete: Restrict)
+  factor     Float    // e.g. 1 Carton = 24 Pcs => factor = 24
+  productId  String?
+  product    Product? @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+
+  @@unique([fromUnitId, toUnitId, productId])
+}
+
+model Product {
+  id               String   @id @default(cuid())
+  name             String
+  sku              String   @unique
+  barcode          String?  @unique
+  categoryId       String
+  category         Category @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  baseUnitId       String
+  baseUnit         Unit     @relation("BaseUnit", fields: [baseUnitId], references: [id], onDelete: Restrict)
+  description      String?
+  imageUrl         String?
+  costPrice        Float    @default(0) // Moving weighted average cost
+  sellingPrice     Float    @default(0)
+  minSellingPrice  Float?   @default(0)
+  reorderThreshold Float    @default(10)
+  currentStock     Float    @default(0)
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  priceHistories      ProductPriceHistory[]
+  conversions         UnitConversion[]
+  purchaseLines       PurchaseLine[]
+  purchaseReturnLines PurchaseReturnLine[]
+  saleLines           SaleLine[]
+  saleReturnLines     SaleReturnLine[]
+  stockMovements      StockMovement[]
+  stockAdjustments    StockAdjustment[]
+
+  @@index([categoryId])
+  @@index([sku])
+  @@index([barcode])
+}
+
+model ProductPriceHistory {
+  id              String   @id @default(cuid())
+  productId       String
+  product         Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  oldCostPrice    Float
+  newCostPrice    Float
+  oldSellingPrice Float
+  newSellingPrice Float
+  changedById     String?
+  reason          String?
+  createdAt       DateTime @default(now())
+
+  @@index([productId])
+}
+
+// ─── SUPPLIERS & PURCHASES ────────────────────────────────────────────────────
+
+model Supplier {
+  id             String   @id @default(cuid())
+  name           String
+  companyName    String?
+  phone          String
+  email          String?
+  panVatNumber   String?
+  address        String?
+  openingBalance Float    @default(0) // Positive = we owe supplier
+  currentBalance Float    @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  purchases Purchase[]
+  payments  SupplierPayment[]
+
+  @@index([name])
+}
+
+model Purchase {
+  id            String         @id @default(cuid())
+  invoiceNumber String         @unique
+  supplierId    String
+  supplier      Supplier       @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  purchaseDate  DateTime       @default(now())
+  status        PurchaseStatus @default(DRAFT)
+  subtotal      Float          @default(0)
+  discount      Float          @default(0)
+  tax           Float          @default(0)
+  total         Float          @default(0)
+  paidAmount    Float          @default(0)
+  dueAmount     Float          @default(0)
+  notes         String?
+  createdById   String
+  createdBy     User           @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  postedAt      DateTime?
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  lines    PurchaseLine[]
+  returns  PurchaseReturn[]
+  payments SupplierPayment[]
+
+  @@index([supplierId])
+  @@index([purchaseDate])
+  @@index([status])
+}
+
+model PurchaseLine {
+  id               String   @id @default(cuid())
+  purchaseId       String
+  purchase         Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  productId        String
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  qty              Float
+  unitId           String
+  unit             Unit     @relation(fields: [unitId], references: [id], onDelete: Restrict)
+  unitCost         Float
+  totalCost        Float
+  convertedQtyBase Float
+  createdAt        DateTime @default(now())
+
+  @@index([purchaseId])
+  @@index([productId])
+}
+
+model PurchaseReturn {
+  id           String       @id @default(cuid())
+  returnNumber String       @unique
+  purchaseId   String
+  purchase     Purchase     @relation(fields: [purchaseId], references: [id], onDelete: Restrict)
+  returnDate   DateTime     @default(now())
+  status       ReturnStatus @default(DRAFT)
+  reason       String?
+  totalAmount  Float        @default(0)
+  createdById  String
+  createdBy    User         @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  lines PurchaseReturnLine[]
+
+  @@index([purchaseId])
+}
+
+model PurchaseReturnLine {
+  id        String         @id @default(cuid())
+  returnId  String
+  return    PurchaseReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product        @relation(fields: [productId], references: [id], onDelete: Restrict)
+  qty       Float
+  unitCost  Float
+  totalCost Float
+  createdAt DateTime       @default(now())
+
+  @@index([returnId])
+}
+
+model SupplierPayment {
+  id            String        @id @default(cuid())
+  paymentNumber String        @unique
+  supplierId    String
+  supplier      Supplier      @relation(fields: [supplierId], references: [id], onDelete: Restrict)
+  purchaseId    String?
+  purchase      Purchase?     @relation(fields: [purchaseId], references: [id], onDelete: SetNull)
+  amount        Float
+  paymentMethod PaymentMethod @default(CASH)
+  paymentDate   DateTime      @default(now())
+  referenceNo   String?
+  notes         String?
+  createdById   String
+  createdBy     User          @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt     DateTime      @default(now())
+
+  @@index([supplierId])
+  @@index([paymentDate])
+}
+
+// ─── CUSTOMERS & SALES ────────────────────────────────────────────────────────
+
+model Customer {
+  id             String   @id @default(cuid())
+  name           String
+  shopName       String?
+  phone          String
+  email          String?
+  panVatNumber   String?
+  address        String?
+  creditLimit    Float    @default(0)
+  openingBalance Float    @default(0) // Positive = customer owes us
+  currentBalance Float    @default(0)
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  sales    Sale[]
+  payments CustomerPayment[]
+
+  @@index([name])
+}
+
+model Sale {
+  id            String     @id @default(cuid())
+  invoiceNumber String     @unique
+  customerId    String
+  customer      Customer   @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  saleDate      DateTime   @default(now())
+  status        SaleStatus @default(DRAFT)
+  subtotal      Float      @default(0)
+  discount      Float      @default(0)
+  tax           Float      @default(0)
+  total         Float      @default(0)
+  paidAmount    Float      @default(0)
+  dueAmount     Float      @default(0)
+  notes         String?
+  createdById   String
+  createdBy     User       @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  postedAt      DateTime?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+
+  lines    SaleLine[]
+  returns  SaleReturn[]
+  payments CustomerPayment[]
+
+  @@index([customerId])
+  @@index([saleDate])
+  @@index([status])
+}
+
+model SaleLine {
+  id               String   @id @default(cuid())
+  saleId           String
+  sale             Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  productId        String
+  product          Product  @relation(fields: [productId], references: [id], onDelete: Restrict)
+  qty              Float
+  unitId           String
+  unit             Unit     @relation(fields: [unitId], references: [id], onDelete: Restrict)
+  unitPrice        Float
+  costPriceAtSale  Float    // Snapshot of weighted average cost price when sold (for COGS)
+  totalPrice       Float
+  convertedQtyBase Float
+  createdAt        DateTime @default(now())
+
+  @@index([saleId])
+  @@index([productId])
+}
+
+model SaleReturn {
+  id           String       @id @default(cuid())
+  returnNumber String       @unique
+  saleId       String
+  sale         Sale         @relation(fields: [saleId], references: [id], onDelete: Restrict)
+  returnDate   DateTime     @default(now())
+  status       ReturnStatus @default(DRAFT)
+  reason       String?
+  totalAmount  Float        @default(0)
+  createdById  String
+  createdBy    User         @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  lines SaleReturnLine[]
+
+  @@index([saleId])
+}
+
+model SaleReturnLine {
+  id              String     @id @default(cuid())
+  returnId        String
+  return          SaleReturn @relation(fields: [returnId], references: [id], onDelete: Cascade)
+  productId       String
+  product         Product    @relation(fields: [productId], references: [id], onDelete: Restrict)
+  qty             Float
+  unitPrice       Float
+  costPriceAtSale Float
+  totalPrice      Float
+  createdAt       DateTime   @default(now())
+
+  @@index([returnId])
+}
+
+model CustomerPayment {
+  id            String        @id @default(cuid())
+  paymentNumber String        @unique
+  customerId    String
+  customer      Customer      @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  saleId        String?
+  sale          Sale?         @relation(fields: [saleId], references: [id], onDelete: SetNull)
+  amount        Float
+  paymentMethod PaymentMethod @default(CASH)
+  paymentDate   DateTime      @default(now())
+  referenceNo   String?
+  notes         String?
+  createdById   String
+  createdBy     User          @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt     DateTime      @default(now())
+
+  @@index([customerId])
+  @@index([paymentDate])
+}
+
+// ─── INVENTORY & STOCK LEDGER ─────────────────────────────────────────────────
+
+model StockMovement {
+  id           String       @id @default(cuid())
+  productId    String
+  product      Product      @relation(fields: [productId], references: [id], onDelete: Restrict)
+  movementType MovementType
+  qty          Float        // Positive for inflow, negative for outflow
+  unitCost     Float
+  runningBalance Float      // Balance immediately after movement
+  runningAvgCost Float      // Moving average cost after movement
+  referenceType String?     // "PURCHASE", "SALE", "ADJUSTMENT", "OPENING"
+  referenceId   String?
+  referenceDoc  String?
+  notes         String?
+  createdById   String?
+  createdBy     User?       @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt     DateTime    @default(now())
+
+  @@index([productId, createdAt])
+  @@index([referenceType, referenceId])
+}
+
+model StockAdjustment {
+  id               String         @id @default(cuid())
+  adjustmentNumber String         @unique
+  productId        String
+  product          Product        @relation(fields: [productId], references: [id], onDelete: Restrict)
+  adjustmentType   AdjustmentType
+  qty              Float          // Signed change
+  unitCost         Float
+  reason           String
+  approvedById     String?
+  approvedBy       User?          @relation("AdjustmentApprovedBy", fields: [approvedById], references: [id], onDelete: SetNull)
+  createdById      String
+  createdBy        User           @relation("AdjustmentCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt        DateTime       @default(now())
+
+  @@index([productId])
+}
+
+// ─── EXPENSES ─────────────────────────────────────────────────────────────────
+
+model ExpenseCategory {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  expenses Expense[]
+}
+
+model Expense {
+  id            String          @id @default(cuid())
+  categoryId    String
+  category      ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Restrict)
+  amount        Float
+  paymentMethod PaymentMethod   @default(CASH)
+  expenseDate   DateTime        @default(now())
+  description   String
+  referenceNo   String?
+  receiptUrl    String?
+  createdById   String
+  createdBy     User            @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([categoryId])
+  @@index([expenseDate])
+}
+
+// ─── SYSTEM SEQUENCES & CONFIGURATION ─────────────────────────────────────────
+
+model InvoiceSequence {
+  id         String   @id @default(cuid())
+  docType    DocType  @unique
+  prefix     String
+  fiscalYear String
+  nextNumber Int      @default(1)
+  padding    Int      @default(6)
+  updatedAt  DateTime @updatedAt
+}
+
+model SystemSetting {
+  id          String   @id @default(cuid())
+  key         String   @unique
+  value       String
+  description String?
+  updatedAt   DateTime @updatedAt
+}
