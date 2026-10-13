@@ -26,8 +26,10 @@ import {
   FileText,
   UserCog,
   ClipboardList,
+  LogOut,
 } from "lucide-react";
 import { APP_NAME, APP_NAME_SHORT } from "@/lib/constants";
+import { logoutAction } from "@/app/actions/auth-actions";
 
 interface NavItem {
   label: string;
@@ -315,14 +317,17 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
           })}
         </nav>
 
-        {/* Bottom user info placeholder */}
+        {/* Bottom user info and logout */}
         <div
           style={{
             padding: "1rem 1.25rem",
             borderTop: "1px solid rgba(255,255,255,0.08)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.625rem", minWidth: 0 }}>
             <div
               style={{
                 width: 32,
@@ -342,13 +347,34 @@ export function Sidebar({ mobileOpen, onCloseMobile }: SidebarProps) {
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <p style={{ margin: 0, fontSize: "0.8125rem", fontWeight: 600, color: "white", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                Admin User
+                Active Session
               </p>
               <p style={{ margin: 0, fontSize: "0.6875rem", color: "rgba(255,255,255,0.45)" }}>
-                Owner
+                Online
               </p>
             </div>
           </div>
+          <form action={logoutAction}>
+            <button
+              type="submit"
+              title="Sign Out"
+              aria-label="Sign Out"
+              style={{
+                background: "rgba(255,255,255,0.06)",
+                border: "1px solid rgba(255,255,255,0.1)",
+                borderRadius: "0.375rem",
+                color: "rgba(255,255,255,0.7)",
+                padding: "0.375rem",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "all 0.15s ease",
+              }}
+            >
+              <LogOut size={16} />
+            </button>
+          </form>
         </div>
       </aside>
     </>

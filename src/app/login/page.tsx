@@ -1,9 +1,10 @@
 import type { Metadata } from "next";
 import { APP_NAME } from "@/lib/constants";
+import { LoginForm } from "./login-form";
 
 export const metadata: Metadata = {
   title: `Sign In | ${APP_NAME}`,
-  description: "Sign in to access the wholesale management system.",
+  description: "Secure role-based sign in for wholesale operations and stock management.",
 };
 
 export default function LoginPage() {
@@ -15,12 +16,12 @@ export default function LoginPage() {
         alignItems: "center",
         justifyContent: "center",
         background: "linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%)",
-        padding: "1rem",
+        padding: "1.5rem",
         position: "relative",
         overflow: "hidden",
       }}
     >
-      {/* Background decoration */}
+      {/* Background radial effects */}
       <div
         aria-hidden="true"
         style={{
@@ -60,7 +61,7 @@ export default function LoginPage() {
         }}
       />
 
-      {/* Login card */}
+      {/* Login Card */}
       <div
         style={{
           background: "rgba(255,255,255,0.05)",
@@ -69,33 +70,31 @@ export default function LoginPage() {
           backdropFilter: "blur(20px)",
           padding: "2.5rem",
           width: "100%",
-          maxWidth: 420,
+          maxWidth: 440,
           boxShadow: "0 25px 60px rgba(0,0,0,0.4)",
           position: "relative",
           zIndex: 1,
-          animation: "fadeIn 0.3s ease-out",
         }}
       >
-        {/* Logo */}
+        {/* Company Header */}
         <div style={{ textAlign: "center", marginBottom: "2rem" }}>
           <div
             style={{
-              width: 64,
-              height: 64,
+              width: 56,
+              height: 56,
               borderRadius: "1rem",
               background: "linear-gradient(135deg, #6366f1, #8b5cf6)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: "1.5rem",
+              fontSize: "1.375rem",
               fontWeight: 800,
               color: "white",
               margin: "0 auto 1rem",
               boxShadow: "0 8px 24px rgba(99,102,241,0.5)",
             }}
-            aria-label="Himalayan Traders logo"
           >
-            HT
+            SG
           </div>
           <h1
             style={{
@@ -106,134 +105,34 @@ export default function LoginPage() {
               letterSpacing: "-0.03em",
             }}
           >
-            Himalayan Traders
+            {APP_NAME}
           </h1>
           <p
             style={{
               margin: "0.375rem 0 0",
               fontSize: "0.875rem",
-              color: "rgba(255,255,255,0.55)",
+              color: "rgba(255,255,255,0.6)",
             }}
           >
-            Wholesale Management System
+            Wholesale Trading & Inventory Portal
           </p>
         </div>
 
-        {/* Form */}
-        <form
-          aria-label="Sign in form"
-          style={{ display: "flex", flexDirection: "column", gap: "1rem" }}
-        >
-          <div>
-            <label
-              htmlFor="login-email"
-              style={{
-                display: "block",
-                fontSize: "0.8125rem",
-                fontWeight: 500,
-                color: "rgba(255,255,255,0.75)",
-                marginBottom: "0.375rem",
-              }}
-            >
-              Email Address
-            </label>
-            <input
-              id="login-email"
-              type="email"
-              name="email"
-              autoComplete="email"
-              placeholder="admin@himalayan.com"
-              required
-              style={{
-                width: "100%",
-                padding: "0.6875rem 0.875rem",
-                background: "rgba(255,255,255,0.08)",
-                border: "1.5px solid rgba(255,255,255,0.15)",
-                borderRadius: "0.625rem",
-                color: "white",
-                fontSize: "0.9375rem",
-                outline: "none",
-                transition: "border-color 0.15s",
-                boxSizing: "border-box",
-              }}
-            />
-          </div>
+        {/* Interactive Client Login Form */}
+        <LoginForm />
 
-          <div>
-            <label
-              htmlFor="login-password"
-              style={{
-                display: "block",
-                fontSize: "0.8125rem",
-                fontWeight: 500,
-                color: "rgba(255,255,255,0.75)",
-                marginBottom: "0.375rem",
-              }}
-            >
-              Password
-            </label>
-            <input
-              id="login-password"
-              type="password"
-              name="password"
-              autoComplete="current-password"
-              placeholder="••••••••"
-              required
-              style={{
-                width: "100%",
-                padding: "0.6875rem 0.875rem",
-                background: "rgba(255,255,255,0.08)",
-                border: "1.5px solid rgba(255,255,255,0.15)",
-                borderRadius: "0.625rem",
-                color: "white",
-                fontSize: "0.9375rem",
-                outline: "none",
-                transition: "border-color 0.15s",
-                boxSizing: "border-box",
-              }}
-            />
-          </div>
-
-          {/* Error placeholder */}
-          <div
-            id="login-error"
-            role="alert"
-            aria-live="polite"
-            style={{ display: "none", color: "#fca5a5", fontSize: "0.8125rem", textAlign: "center" }}
-          />
-
-          <button
-            id="login-submit"
-            type="submit"
-            style={{
-              width: "100%",
-              padding: "0.75rem",
-              background: "linear-gradient(135deg, #6366f1, #4f46e5)",
-              border: "none",
-              borderRadius: "0.625rem",
-              color: "white",
-              fontSize: "0.9375rem",
-              fontWeight: 600,
-              cursor: "pointer",
-              transition: "opacity 0.15s",
-              marginTop: "0.5rem",
-              boxShadow: "0 4px 16px rgba(99,102,241,0.4)",
-            }}
-          >
-            Sign In
-          </button>
-        </form>
-
-        <p
+        <div
           style={{
-            marginTop: "1.5rem",
+            marginTop: "1.75rem",
+            paddingTop: "1.25rem",
+            borderTop: "1px solid rgba(255,255,255,0.08)",
             textAlign: "center",
             fontSize: "0.75rem",
-            color: "rgba(255,255,255,0.35)",
+            color: "rgba(255,255,255,0.4)",
           }}
         >
-          Authentication will be wired in Phase 4
-        </p>
+          Protected by role-based access control • Kalimati, Kathmandu
+        </div>
       </div>
     </div>
   );
