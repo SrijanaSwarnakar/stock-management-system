@@ -93,10 +93,24 @@ async function main() {
   // 4. Users (Bcrypt hashed)
   console.log("-> Seeding demo users with secure passwords...");
   const passwordSalt = await bcrypt.genSalt(10);
+  const srijanaPassword = await bcrypt.hash("$Tock234", passwordSalt);
   const adminPassword = await bcrypt.hash("Admin@123Password", passwordSalt);
   const managerPassword = await bcrypt.hash("Manager@123Password", passwordSalt);
   const salesPassword = await bcrypt.hash("Sales@123Password", passwordSalt);
   const inventoryPassword = await bcrypt.hash("Inventory@123Password", passwordSalt);
+
+  await prisma.user.upsert({
+    where: { email: "srijanashah47@gmail.com" },
+    update: { passwordHash: srijanaPassword, role: Role.ADMIN, isActive: true },
+    create: {
+      name: "Srijana Shah",
+      email: "srijanashah47@gmail.com",
+      passwordHash: srijanaPassword,
+      role: Role.ADMIN,
+      phone: "+977-9851000000",
+      isActive: true,
+    },
+  });
 
   const admin = await prisma.user.upsert({
     where: { email: "admin@shreeganesh.com.np" },

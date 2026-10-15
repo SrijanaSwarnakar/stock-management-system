@@ -27,6 +27,7 @@ import {
   UserCog,
   ClipboardList,
   LogOut,
+  RotateCcw,
 } from "lucide-react";
 import { APP_NAME, APP_NAME_SHORT } from "@/lib/constants";
 import { logoutAction } from "@/app/actions/auth-actions";
@@ -85,6 +86,11 @@ const navItems: NavItem[] = [
     href: "/dashboard/purchases",
     icon: <ShoppingCart size={16} />,
   },
+  {
+    label: "Purchase Returns",
+    href: "/dashboard/purchases/returns",
+    icon: <RotateCcw size={16} />,
+  },
   // ── SALES ─────────────────────────────────────────────────
   {
     label: "Customers",
@@ -96,6 +102,11 @@ const navItems: NavItem[] = [
     label: "Sales",
     href: "/dashboard/sales",
     icon: <Store size={16} />,
+  },
+  {
+    label: "Sales Returns",
+    href: "/dashboard/sales/returns",
+    icon: <RotateCcw size={16} />,
   },
   // ── FINANCIAL ─────────────────────────────────────────────
   {

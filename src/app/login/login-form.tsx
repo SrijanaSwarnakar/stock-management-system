@@ -2,42 +2,7 @@
 
 import React, { useState, useTransition } from "react";
 import { loginAction } from "@/app/actions/auth-actions";
-import { Lock, Mail, Eye, EyeOff, AlertCircle, Loader2, ShieldCheck, UserCheck, ShoppingBag, Boxes } from "lucide-react";
-
-const DEMO_ACCOUNTS = [
-  {
-    role: "Admin",
-    title: "Owner / Full Access",
-    email: "admin@shreeganesh.com.np",
-    password: "Admin@123Password",
-    icon: ShieldCheck,
-    color: "#6366f1",
-  },
-  {
-    role: "Manager",
-    title: "Operations & Reports",
-    email: "manager@shreeganesh.com.np",
-    password: "Manager@123Password",
-    icon: UserCheck,
-    color: "#10b981",
-  },
-  {
-    role: "Sales",
-    title: "Billing & Receipts",
-    email: "sales@shreeganesh.com.np",
-    password: "Sales@123Password",
-    icon: ShoppingBag,
-    color: "#f59e0b",
-  },
-  {
-    role: "Inventory",
-    title: "Stock & Purchases",
-    email: "inventory@shreeganesh.com.np",
-    password: "Inventory@123Password",
-    icon: Boxes,
-    color: "#8b5cf6",
-  },
-];
+import { Lock, Mail, Eye, EyeOff, AlertCircle, Loader2 } from "lucide-react";
 
 export function LoginForm() {
   const [email, setEmail] = useState("");
@@ -68,85 +33,8 @@ export function LoginForm() {
     });
   };
 
-  const handleFillDemo = (demoEmail: string, demoPass: string) => {
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    setError(null);
-  };
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
-      {/* Quick-fill Demo Accounts Pills */}
-      <div>
-        <label
-          style={{
-            display: "block",
-            fontSize: "0.75rem",
-            fontWeight: 600,
-            textTransform: "uppercase",
-            letterSpacing: "0.05em",
-            color: "rgba(255,255,255,0.6)",
-            marginBottom: "0.5rem",
-          }}
-        >
-          Quick Demo Accounts:
-        </label>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: "0.5rem",
-          }}
-        >
-          {DEMO_ACCOUNTS.map((acc) => {
-            const Icon = acc.icon;
-            const isSelected = email === acc.email;
-            return (
-              <button
-                key={acc.role}
-                type="button"
-                onClick={() => handleFillDemo(acc.email, acc.password)}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: "0.5rem",
-                  padding: "0.5rem 0.625rem",
-                  borderRadius: "0.5rem",
-                  background: isSelected ? "rgba(99,102,241,0.25)" : "rgba(255,255,255,0.06)",
-                  border: isSelected ? "1px solid #818cf8" : "1px solid rgba(255,255,255,0.1)",
-                  color: "white",
-                  cursor: "pointer",
-                  textAlign: "left",
-                  transition: "all 0.15s ease",
-                }}
-              >
-                <div
-                  style={{
-                    width: 24,
-                    height: 24,
-                    borderRadius: "0.375rem",
-                    background: `${acc.color}20`,
-                    color: acc.color,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    flexShrink: 0,
-                  }}
-                >
-                  <Icon size={14} />
-                </div>
-                <div style={{ overflow: "hidden" }}>
-                  <div style={{ fontSize: "0.75rem", fontWeight: 600, lineHeight: 1.2 }}>{acc.role}</div>
-                  <div style={{ fontSize: "0.6875rem", color: "rgba(255,255,255,0.5)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-                    {acc.title}
-                  </div>
-                </div>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
       {/* Error Alert */}
       {error && (
         <div
@@ -169,7 +57,7 @@ export function LoginForm() {
       )}
 
       {/* Credentials Form */}
-      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+      <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "1.125rem" }}>
         <div>
           <label
             htmlFor="login-email"
@@ -199,7 +87,7 @@ export function LoginForm() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder="e.g. admin@shreeganesh.com.np"
+              placeholder="srijanashah47@gmail.com"
               required
               autoComplete="email"
               disabled={isPending}
